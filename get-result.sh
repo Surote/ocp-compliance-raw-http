@@ -1,7 +1,7 @@
 FILE_NAME=pods.yaml
 COPY_DIR=outdir
 RESULT_DIR=raw-http
-POD_TEMPLATE=pod-template.yaml
+POD_TEMPLATE=pod_template.yaml
 NS=openshift-compliance
 
 PVC_CP=`oc get pvc -n openshift-compliance | awk 'NR>1 {print $1}'`
@@ -23,24 +23,35 @@ do
     sleep 2;
     echo "waiting pod Running - $i";
   done;
-  oc cp pv-extract-$i:/workers-scan-results -n $NS ./$COPY_DIR/
+  echo $i
+  cd ./$COPY_DIR
+  mkdir -p $i
+  oc cp pv-extract-$i:/workers-scan-results -n $NS ./$i/
+  cd $i
+  TG_DIR=`ls -al | awk 'NR>1 {print $9}' | grep -E '[0-9]+' | sort -nr | head -1`
+  echo $TG_DIR
+  cd $TG_DIR
+  TG_FILE=`ls | grep '.bzip2'`
+  echo 'tg file'
+  echo $TG_FILE
+  pwd
+
+  for j in $TG_FILE;
+  do
+    echo $j
+    oscap xccdf generate report $j > ../../../$RESULT_DIR/$j.html
+  done;
+  cd ../../
 done;
 
-cd outdir
-ls -al
-TG_DIR=`ls -al | awk 'NR>1 {print $9}' | grep -E '[0-9]+' | sort -nr | head -1`
-cd $TG_DIR
-TG_FILE=`ls | grep '.bzip2'`
-for i in $TG_FILE;
-do
-  oscap xccdf generate report $i > ../../$RESULT_DIR/$i.html
-done;
-
+pwd
 echo "DELETE $FILE_NAME\n"
-rm -rf ../../$FILE_NAME
-rm -rf ../../$COPY_DIR
+rm -rf ../$FILE_NAME
+rm -rf ../$COPY_DIR
 
 GET_POD=`oc get pod -n $NS | grep pv-extract | awk '{print $1}'`
+
+sleep 5;
 
 echo "DELETE PODs\n"
 for i  in $GET_POD;
