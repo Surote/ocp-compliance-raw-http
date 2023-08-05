@@ -17,6 +17,7 @@ done;
 
 oc apply -f $FILE_NAME -n $NS
 
+cd $COPY_DIR
 for i in $PVC_CP;
 do
   while [[ $(oc get pods pv-extract-$i -n $NS  -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
@@ -24,7 +25,6 @@ do
     echo "waiting pod Running - $i";
   done;
   echo $i
-  cd ./$COPY_DIR
   mkdir -p $i
   oc cp pv-extract-$i:/workers-scan-results -n $NS ./$i/
   cd $i
